@@ -1,0 +1,33 @@
+Apnic: IP Region Querier For Go Language
+
+This library provides a fast IP region querier for Go language.
+It implements an O(logN) querier which uses binary search
+instead of sequential search to detect if a given IP lives in 
+a region.
+
+The region data is generated from the public information provided
+by apnic.net, and the process is automated by a Makefile.
+
+Usage:
+
+	import "github.com/microfoxme/apnic"
+
+	...
+	if !apnic.IPInPRC(ip) {
+		// do something to make sure you can access
+		// the destination address.
+		...
+	}
+
+Hacks:
+
+	$ make && go install
+
+The command is enough to generate the Go source file and installs
+the package in GOPATH.
+
+	$ make ipnet-cn.json
+
+This will generate a pre-sorted file 'ipnet-cn.json' in JSON format.
+By translating the function, apnic.Map.Contains, into javascript,
+you can use this library in the browser.
