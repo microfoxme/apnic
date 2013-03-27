@@ -1,0 +1,121 @@
+#  Copyright (c) 2011-2013, foxae.com/microfox.me
+#
+#  This file is part of Apnic, an IP region querier library.
+#  Contact: info@microfox.me
+#
+#  All rights reserved.
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License along
+#  with this program; if not, write to the Free Software Foundation, Inc.,
+#  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+
+function start(n) {
+	if (gentype == "go") {
+		print  "// cat delegated-apnic.txt | awk -f awksplit | sort -k1,1 -n | (apnic_target=go awk -f awkgen)"
+		print  "// MACHINE GENERATED FROM THE COMMAND ABOVE; DO NOT EDIT"
+		print  ""
+		print  "package apnic"
+		print  ""
+		printf "const numberOfIPNetInCN = %d\n\n", n
+		print  "var ipNetInCN = []*Entry{"
+	} else {
+		print "["
+	}
+}
+
+function end() {
+	if (gentype == "go") {
+		print "}"
+		print ""
+		print "var prcMap = Map{ipNetInCN}"
+	} else {
+		print "]"
+	}
+}
+
+func json_line(ip, mask) {
+	d = and(ip, 0xff)
+	c = and(rshift(ip, 8), 0xff)
+	b = and(rshift(ip, 16), 0xff)
+	a = and(rshift(ip, 24), 0xff)
+	net = sprintf("%s, %s, %s, %s", a, b, c, d)
+
+	mask = xor(0xffffffff, mask-1)
+	d = and(mask, 0xff)
+	c = and(rshift(mask, 8), 0xff)
+	b = and(rshift(mask, 16), 0xff)
+	a = and(rshift(mask, 24), 0xff)
+	msk = sprintf("%d, %d, %d, %d", a, b, c, d)
+
+	s1 = "    {\n"
+	s2 = sprintf("        \"N\"   : %d,\n", ip)
+	s3 = sprintf("        \"IP\"  : [%s],\n", net)
+	s4 = sprintf("        \"Mask\": [%s]\n", msk)
+	s5 = "    }"
+	return sprintf("%s%s%s%s%s", s1, s2, s3, s4, s5)
+}
+
+func go_line(ip, mask) {
+	d = and(ip, 0xff)
+	c = and(rshift(ip, 8), 0xff)
+	b = and(rshift(ip, 16), 0xff)
+	a = and(rshift(ip, 24), 0xff)
+	net = sprintf("%s, %s, %s, %s", a, b, c, d)
+	
+	mask = xor(0xffffffff, mask-1)
+	d = and(mask, 0xff)
+	c = and(rshift(mask, 8), 0xff)
+	b = and(rshift(mask, 16), 0xff)
+	a = and(rshift(mask, 24), 0xff)
+	msk = sprintf("0x%02x, 0x%02x, 0x%02x, 0x%02x", a, b, c, d)
+
+	s = "\t&Entry{\n"
+	s = sprintf("%s\t\tN: %d,\n", s, ip)
+	s = sprintf("%s\t\tIP: []byte{%s},\n", s, net)
+	s = sprintf("%s\t\tMask: []byte{%s},\n", s, msk)
+	s = sprintf("%s\t\tmask: %d,\n", s, mask)
+	s = sprintf("%s\t}", s)
+	return s
+}
+
+BEGIN {
+	gentype = ENVIRON["apnic_target"] == "go" ? "go":"json"
+}
+
+/^#/ { next }
+
+{
+	n++
+	if (gentype == "go") {
+		ln = go_line($1, $3)
+	} else {
+		ln = json_line($1, $3)
+	}
+	if (!content) {
+		content = ln
+	} else {
+		content = sprintf("%s,\n%s", content, ln)
+	}
+}
+
+END {
+	start(n)
+	if (gentype == "go") {
+		content = sprintf("%s,\n", content)
+	} else {
+		content = sprintf("%s\n", content)
+	}
+	print content
+	end()
+}
