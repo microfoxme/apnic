@@ -11,9 +11,10 @@ O(logN)的IP地域查询库程序。
 3. apnic.InPRC，apnic.IPInPRC用于查询某个IP是否属于大陆地区；
 
 依赖包：
-gawk  (sudo apt-get install gawk)
-Golang (Go语言环境)
-make
+
+1. gawk  (sudo apt-get install gawk) 
+2. Golang (Go语言环境) 
+3. make 
 
 使用参见：
 README
